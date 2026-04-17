@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสต็อกสแกนบาร์โค้ด</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f0f2f5; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; }
+        
+        /* สไตล์หน้าจอกล้อง */
+        #reader { width: 100%; max-width: 400px; margin: 10px auto; border-radius: 10px; overflow: hidden; display: none; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        input, select, button { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        
+        .btn-scan { background-color: #673ab7; color: white; border: none; cursor: pointer; }
+        .btn-add { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-add:hover { background-color: #218838; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+        th { background-color: #1a73e8; color: white; }
+        .expired { background-color: #ffebee; color: #c62828; }
+        .warning { background-color: #fffde7; color: #f57f17; }
+        .delete-btn { background-color: #ff4d4f; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📸 สต็อกสินค้า & สแกนบาร์โค้ด</h2>
+
+    <div id="reader"></div>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">📷 เปิด/ปิด กล้องสแกนบาร์โค้ด</button>
+    </div>
+    
+    <div class="form-grid">
+        <input type="text" id="barcode" placeholder="รหัสบาร์โค้ด (จากสแกนเนอร์)">
+        <input type="text" id="prodName" placeholder="ชื่อสินค้า">
+        <input type="number" id="prodQty" placeholder="จำนวน" value="1">
+        <select id="prodDept">
+            <option value="">-- แผนก --</option>
+            <option value="อาหารสด">อาหารสด</option>
+            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
+            <option value="ของใช้">ของใช้</option>
+        </select>
+        <input type="date" id="prodDate">
+        <button class="btn-add" onclick="addProduct()">➕ เพิ่มสินค้า</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>บาร์โค้ด</th>
+                <th>ชื่อสินค้า</th>
+                <th>แผนก</th>
+                <th>จำนวน</th>
+                <th>วันหมดอายุ</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="productTable"></tbody>
+    </table>
+</div>
+
+<script>
+    let products = JSON.parse(localStorage.getItem("smartStock")) || [];
+    let html5QrCode;
+
+    // --- ระบบสแกนเนอร์ ---
+    function toggleScanner() {
+        const readerDiv = document.getElementById("reader");
+        
+        if (readerDiv.style.display === "none" || readerDiv.style.display === "") {
+            readerDiv.style.display = "block";
+            startScanner();
+        } else {
+            stopScanner();
+            readerDiv.style.display = "none";
+        }
+    }
+
+    function startScanner() {
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+        html5QrCode.start(
+            { facingMode: "environment" }, // ใช้กล้องหลัง
+            config,
+            (decodedText) => {
+                document.getElementById("barcode").value = decodedText;
+                // สแกนสำเร็จแล้วสั่นเตือนเล็กน้อย (
