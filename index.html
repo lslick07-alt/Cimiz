@@ -2,54 +2,61 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสต็อกสแกนบาร์โค้ด</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>ระบบเช็คสินค้าหมดอายุ (Pro)</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f0f2f5; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #1a73e8; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 25px; }
         
-        /* สไตล์หน้าจอกล้อง */
-        #reader { width: 100%; max-width: 400px; margin: 10px auto; border-radius: 10px; overflow: hidden; display: none; }
-        
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        input, select, button { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-        
-        .btn-scan { background-color: #673ab7; color: white; border: none; cursor: pointer; }
-        .btn-add { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-        .btn-add:hover { background-color: #218838; }
+        /* Form Styling */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        input, select { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .btn-add { background-color: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-add:hover { background-color: #0056b3; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background-color: #1a73e8; color: white; }
-        .expired { background-color: #ffebee; color: #c62828; }
-        .warning { background-color: #fffde7; color: #f57f17; }
-        .delete-btn { background-color: #ff4d4f; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        /* Filter Section */
+        .filter-section { margin-bottom: 15px; text-align: right; }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { border-bottom: 1px solid #eee; padding: 15px; text-align: left; }
+        th { background-color: #f1f1f1; color: #555; }
+        .expired { background-color: #fff1f0; color: #cf1322; }
+        .warning { background-color: #fffbe6; color: #d48806; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .delete-btn { background-color: #ff4d4f; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📸 สต็อกสินค้า & สแกนบาร์โค้ด</h2>
-
-    <div id="reader"></div>
-    <div style="text-align: center; margin-bottom: 20px;">
-        <button class="btn-scan" id="scanBtn" onclick="toggleScanner()">📷 เปิด/ปิด กล้องสแกนบาร์โค้ด</button>
-    </div>
+    <h2>📋 ระบบจัดการสต็อกและวันหมดอายุ</h2>
     
     <div class="form-grid">
-        <input type="text" id="barcode" placeholder="รหัสบาร์โค้ด (จากสแกนเนอร์)">
+        <input type="text" id="barcode" placeholder="รหัสบาร์โค้ด">
         <input type="text" id="prodName" placeholder="ชื่อสินค้า">
-        <input type="number" id="prodQty" placeholder="จำนวน" value="1">
+        <input type="number" id="prodQty" placeholder="จำนวน" min="1">
         <select id="prodDept">
-            <option value="">-- แผนก --</option>
-            <option value="อาหารสด">อาหารสด</option>
-            <option value="เครื่องดื่ม">เครื่องดื่ม</option>
-            <option value="ของใช้">ของใช้</option>
+            <option value="">-- เลือกแผนก --</option>
+            <option value="อาหารสด">FOOD</option>
+            <option value="เครื่องดื่ม">NONFOOD</option>
+            <option value="ขนม/ของว่าง">FROZEN</option>
+            
         </select>
         <input type="date" id="prodDate">
-        <button class="btn-add" onclick="addProduct()">➕ เพิ่มสินค้า</button>
+        <button class="btn-add" onclick="addProduct()">➕ เพิ่มข้อมูล</button>
+    </div>
+
+    <hr>
+
+    <div class="filter-section">
+        <span>กรองตามแผนก: </span>
+        <select id="filterDept" onchange="renderTable()">
+            <option value="all">ทั้งหมด</option>
+            <option value="อาหารสด">FOOD</option>
+            <option value="เครื่องดื่ม">NONFOOD</option>
+            <option value="ขนม/ของว่าง">FROZEN</option>
+        </select>
     </div>
 
     <table>
@@ -60,6 +67,7 @@
                 <th>แผนก</th>
                 <th>จำนวน</th>
                 <th>วันหมดอายุ</th>
+                <th>สถานะ</th>
                 <th>จัดการ</th>
             </tr>
         </thead>
@@ -68,29 +76,96 @@
 </div>
 
 <script>
-    let products = JSON.parse(localStorage.getItem("smartStock")) || [];
-    let html5QrCode;
+    // โหลดข้อมูลจาก localStorage เมื่อเปิดเว็บ
+    let products = JSON.parse(localStorage.getItem("myInventory")) || [];
 
-    // --- ระบบสแกนเนอร์ ---
-    function toggleScanner() {
-        const readerDiv = document.getElementById("reader");
+    function addProduct() {
+        const barcode = document.getElementById("barcode").value;
+        const name = document.getElementById("prodName").value;
+        const qty = document.getElementById("prodQty").value;
+        const dept = document.getElementById("prodDept").value;
+        const date = document.getElementById("prodDate").value;
+
+        if (!name || !date || !dept) {
+            alert("กรุณากรอก ชื่อ, แผนก และวันที่ ให้ครบถ้วน");
+            return;
+        }
+
+        const newProduct = {
+            id: Date.now(),
+            barcode: barcode || "-",
+            name: name,
+            qty: qty || 1,
+            dept: dept,
+            expiry: date
+        };
+
+        products.push(newProduct);
+        saveAndRender();
         
-        if (readerDiv.style.display === "none" || readerDiv.style.display === "") {
-            readerDiv.style.display = "block";
-            startScanner();
-        } else {
-            stopScanner();
-            readerDiv.style.display = "none";
+        // ล้างข้อมูลหลังบันทึก
+        document.getElementById("barcode").value = "";
+        document.getElementById("prodName").value = "";
+        document.getElementById("prodQty").value = "";
+        document.getElementById("prodDate").value = "";
+    }
+
+    function deleteProduct(id) {
+        if(confirm("ยืนยันการลบรายการนี้?")) {
+            products = products.filter(p => p.id !== id);
+            saveAndRender();
         }
     }
 
-    function startScanner() {
-        html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    function saveAndRender() {
+        // เซฟลงเครื่อง (localStorage)
+        localStorage.setItem("myInventory", JSON.stringify(products));
+        renderTable();
+    }
 
-        html5QrCode.start(
-            { facingMode: "environment" }, // ใช้กล้องหลัง
-            config,
-            (decodedText) => {
-                document.getElementById("barcode").value = decodedText;
-                // สแกนสำเร็จแล้วสั่นเตือนเล็กน้อย (
+    function renderTable() {
+        const tableBody = document.getElementById("productTable");
+        const filter = document.getElementById("filterDept").value;
+        tableBody.innerHTML = "";
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        products.forEach(item => {
+            // การกรองแผนก
+            if (filter !== "all" && item.dept !== filter) return;
+
+            const exp = new Date(item.expiry);
+            const diff = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+            
+            let statusBadge = `<span class="badge" style="background:#52c41a; color:white;">ปกติ</span>`;
+            let rowClass = "";
+
+            if (diff < 0) {
+                statusBadge = `<span class="badge" style="background:#ff4d4f; color:white;">หมดอายุ</span>`;
+                rowClass = "expired";
+            } else if (diff <= 7) { // แจ้งเตือนล่วงหน้า 7 วัน
+                statusBadge = `<span class="badge" style="background:#faad14; color:white;">อีก ${diff} วัน</span>`;
+                rowClass = "warning";
+            }
+
+            tableBody.innerHTML += `
+                <tr class="${rowClass}">
+                    <td><b>${item.barcode}</b></td>
+                    <td>${item.name}</td>
+                    <td>${item.dept}</td>
+                    <td>${item.qty}</td>
+                    <td>${item.expiry}</td>
+                    <td>${statusBadge}</td>
+                    <td><button class="delete-btn" onclick="deleteProduct(${item.id})">ลบ</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    // รันครั้งแรกเมื่อเปิดหน้าเว็บ
+    renderTable();
+</script>
+
+</body>
+</html>
